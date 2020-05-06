@@ -7,6 +7,10 @@
             margin-left: 1px;
             margin-right: 1px;
         }
+        @media (min-width: 1290px) {
+            .modal-lg {
+                max-width: 90%; }
+        }
     </style>
 </head>
 <body>

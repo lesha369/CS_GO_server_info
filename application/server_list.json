@@ -2,13 +2,7 @@
   "s1": {
     "addr": "192.168.2.181",
     "port": 27015,
-    "rcon_pass": "password",
+    "rcon_pass": "pass",
     "db": "/mnt/cs_server/csgo/addons/sourcemod/data/sqlite/lr_base.sq3"
-  },
-  "s2": {
-    "addr": "188.32.80.214",
-    "port": 27015,
-    "rcon_pass": "rconAdmin",
-    "db": "/home/db/lr_base.sq3"
   }
 }

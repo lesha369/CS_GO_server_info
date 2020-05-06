@@ -92,7 +92,11 @@ class Main extends CI_Controller {
             return ($b['Rank'] - $a['Rank']);
         });
         print_r(json_encode($players, JSON_UNESCAPED_UNICODE));
+    }
 
+    function get_global_stat(){
+        $res = $this->db->order_by('value', 'DESC')->get('lvl_base')->result_array();
+        print_r(json_encode($res, JSON_UNESCAPED_UNICODE));
     }
 
     function exec_rcon(){

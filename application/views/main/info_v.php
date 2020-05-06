@@ -31,6 +31,13 @@
                             <button class="btn btn-outline-success" type="button" id="button-addon2" @click="rcon()">Выполнить</button>
                         </div>
                     </div>
+                    <h5 class="text-center">Отправить всем сообщение</h5>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="Введите сообщение" aria-label="Введите сообщение" aria-describedby="button-addon2" v-model="mess" @keyup.enter="sendMes()">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-success" type="button" id="button-addon2" @click="sendMes()">Отправить</button>
+                        </div>
+                    </div>
                     <div class="alert alert-success" v-if="msgS">
                         <p v-html="br(msgS)"></p>
                         <button @click="msgS = false; cmd = '';" class="btn btn-sm btn-danger">отчистить</button>
@@ -40,9 +47,54 @@
                         <button @click="msgE = false; cmd = '';" class="btn btn-sm btn-danger">отчистить</button>
                     </div>
                     <div class="" v-if="players.length > 0">
-                        <h5 class="text-center">Игроки: {{ info.Players }}/{{ info.MaxPlayers }}
+                        <h5 class="text-center">Игроки: {{ players.length }}/{{ info.MaxPlayers }}
                             <button class="btn btn-sm btn-primary" @click="getPlayers">Обновить</button>
                         </h5>
+                        <button class="btn btn-sm btn-success mb-3" @click="showGlobalStat()" data-toggle="modal" data-target="#myModal">Показать общую статистику по рангу</button>
+                        <!--MODAL-->
+                        <modal>
+                            <h3 class="text-center">Всего игроков: {{ globalStat.length }}</h3>
+                            <div class="table-responsive" v-if="globalStat">
+                                <table class="table table-hover">
+                                    <thead class="table-primary">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>SteamID</th>
+                                        <th>Ник</th>
+                                        <th>Ранг</th>
+                                        <th>Килов</th>
+                                        <th>Смертей</th>
+                                        <th>Headshots</th>
+                                        <th>Выигранных матчей</th>
+                                        <th>Проигранных матчей</th>
+                                        <th>Проведено времени на сервере</th>
+                                        <th>Последнее подключение</th>
+                                        <th>Управление</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr v-for="(s, num) in globalStat">
+                                        <td>{{ num+1 }}</td>
+                                        <td>{{ s.steam }}</td>
+                                        <td>{{ s.name }}</td>
+                                        <td>{{ s.value }}</td>
+                                        <td>{{ s.kills }}</td>
+                                        <td>{{ s.deaths }}</td>
+                                        <td>{{ s.headshots }}</td>
+                                        <td>{{ s.round_win }}</td>
+                                        <td>{{ s.round_lose }}</td>
+                                        <td>{{ convertSecInH(s.playtime) }}</td>
+                                        <td>{{ s.lastconnect | date }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info" @click="kick(s.name)">Кик</button>
+                                            <button class="btn btn-sm btn-outline-danger" @click="ban(s.steam)">Бан</button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </modal>
+                        <!--/MODAL-->
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead class="table-primary">
@@ -115,6 +167,30 @@
 
 <script>
 
+    Vue.component('modal', {
+        data: () => {
+            return {}
+        },
+        props: [],
+        methods: {
+
+        },
+        template: `<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h4 class="modal-title" id="myModalLabel"><strong>Статистика: </strong></h4>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                                </div>
+                                <div class="modal-body">
+                                    <slot></slot>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`
+    });
+
+
 
     const cs = new Vue({
         el: '#cs',
@@ -122,6 +198,8 @@
             info: <?=$info?>,
             players: '',
             cmd: '',
+            mess: '',
+            globalStat: false,
             msgS: false,
             msgE: false,
         },
@@ -129,6 +207,17 @@
             this.getPlayers('<?=$this->uri->segment(3)?>');
         },
         methods: {
+            showGlobalStat(){
+                axios.get('<?=base_url("main/get_global_stat/").$this->uri->segment(3)?>')
+                    .then(
+                        (response) => {
+                            this.globalStat = response.data;
+                        })
+                    .catch((error) => {
+                        this.globalStat = false;
+                        console.log(error.response.data);
+                    });
+            },
             getPlayers(){
                 axios.get('<?=base_url("main/get_players/").$this->uri->segment(3)?>')
                     .then(
@@ -196,9 +285,38 @@
                     console.log(error.error);
                 });
             },
+            sendMes(){
+                const body = new FormData();
+                body.set('cmd', 'sm_msay "'+this.mess+'"');
+
+                axios({
+                    method: 'post',
+                    url: '<?=base_url("main/exec_rcon/").$this->uri->segment(3)?>',
+                    data: body,
+                }).then((response) => {
+                    this.msgS = response.data;
+                    this.msgE = false;
+                }).catch((error) => {
+                    this.msgE = error.response.data;
+                    this.msgS = false;
+                    console.log(error.error);
+                });
+            },
             getDateNow(){
                 var now = new Date();
                 return now.getTime();
+            },
+            convertSecInH: function(timestamp){
+                var hours = Math.floor(timestamp / 60 / 60);
+                var minutes = Math.floor(timestamp / 60) - (hours * 60);
+                var seconds = timestamp % 60;
+
+                var str = '';
+                str += (hours === 0) ? '' : hours+'ч. ';
+                str += (minutes === 0) ? '' : minutes+'мин. ';
+                str += (seconds === 0) ? '' : seconds+'сек. ';
+
+                return str
             },
             br: function (str) {
                 return  str.replace(/\n/g, "<br>").replace(/           /g, "&nbsp;&nbsp;&nbsp;&nbsp;");
